@@ -1,0 +1,20 @@
+# uv 创建的本地虚拟环境，不应提交到版本库。
+.venv/
+
+# Python 解释器缓存及测试、静态检查缓存。
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# 本地密钥和运行配置。只提交不含真实密钥的 .env.example。
+.env
+
+# IDE 和操作系统生成的临时文件。
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+

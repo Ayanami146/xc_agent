@@ -1,0 +1,10 @@
+<script setup lang="ts">
+import { onMounted, reactive, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { api } from '../api'
+import type { AdminItem, Page } from '../types'
+const rows=ref<AdminItem[]>([]),total=ref(0),loading=ref(false),query=reactive({keyword:'',role:'',status:'',page:1,pageSize:20})
+async function load(){loading.value=true;try{const p=await api.get<Page<AdminItem>>('/admins',query);rows.value=p.items;total.value=p.total}catch(e){ElMessage.error((e as Error).message)}finally{loading.value=false}}
+onMounted(load)
+</script>
+<template><div><div class="page-heading"><div><h2>管理员账号</h2><p>账号由开发 SQL 维护，本页面仅提供安全状态查看</p></div></div><div class="panel toolbar"><el-input v-model="query.keyword" clearable placeholder="账号或姓名"/><el-select v-model="query.role" clearable placeholder="全部角色" style="width:140px"><el-option label="ADMIN" value="ADMIN"/><el-option label="SUPPORT" value="SUPPORT"/></el-select><el-select v-model="query.status" clearable placeholder="全部状态" style="width:140px"><el-option v-for="s in ['ACTIVE','DISABLED','LOCKED']" :key="s" :label="s" :value="s"/></el-select><el-button type="primary" @click="load">查询</el-button></div><div class="panel table-panel"><el-table v-loading="loading" :data="rows" stripe><el-table-column prop="account" label="账号"/><el-table-column prop="name" label="姓名"/><el-table-column prop="role" label="角色"><template #default="{row}"><el-tag>{{row.role}}</el-tag></template></el-table-column><el-table-column prop="status" label="状态"><template #default="{row}"><el-tag :type="row.status==='ACTIVE'?'success':'danger'">{{row.status}}</el-tag></template></el-table-column><el-table-column prop="failedCount" label="连续失败"/><el-table-column prop="lockedUntil" label="临时锁定至" min-width="190"/><el-table-column prop="updatedAt" label="更新时间" min-width="190"/></el-table><div class="pagination"><el-pagination v-model:current-page="query.page" layout="total,prev,pager,next" :total="total" @change="load"/></div></div></div></template>

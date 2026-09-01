@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.TicketAttachmentMapper">
+    <resultMap id="AttachmentMap" type="com.xc.agent.model.po.TicketAttachmentPO">
+        <id property="id" column="id"/><result property="publicId" column="public_id"/>
+        <result property="uploaderUserId" column="uploader_user_id"/><result property="ticketId" column="ticket_id"/>
+        <result property="replyId" column="reply_id"/><result property="objectKey" column="object_key"/>
+        <result property="fileName" column="file_name"/><result property="contentType" column="content_type"/>
+        <result property="fileSize" column="file_size"/><result property="sha256" column="sha256"/>
+        <result property="scanStatus" column="scan_status"/><result property="bindStatus" column="bind_status"/>
+        <result property="expiresAt" column="expires_at"/><result property="createdAt" column="created_at"/>
+    </resultMap>
+    <select id="selectByTicketId" resultMap="AttachmentMap">
+        SELECT id,public_id,uploader_user_id,ticket_id,reply_id,object_key,file_name,content_type,file_size,
+               sha256,scan_status,bind_status,expires_at,created_at
+        FROM ticket_attachment WHERE ticket_id=#{ticketId} AND bind_status='BOUND' ORDER BY created_at
+    </select>
+</mapper>

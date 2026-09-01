@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.FaqItemMapper">
+    <resultMap id="FaqMap" type="com.xc.agent.model.po.FaqItemPO">
+        <id property="id" column="id"/><result property="publicId" column="public_id"/><result property="categoryId" column="category_id"/>
+        <result property="title" column="title"/><result property="question" column="question"/><result property="answer" column="answer"/>
+        <result property="summary" column="summary"/><result property="keywords" column="keywords"/><result property="status" column="status"/>
+        <result property="isTop" column="is_top"/><result property="hotCount" column="hot_count"/><result property="publishedAt" column="published_at"/>
+        <result property="version" column="version"/><result property="createdAt" column="created_at"/><result property="updatedAt" column="updated_at"/><result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+    <sql id="columns">id,public_id,category_id,title,question,answer,summary,keywords,status,is_top,hot_count,published_at,version,created_at,updated_at,deleted_at</sql>
+    <sql id="qualifiedColumns">f.id,f.public_id,f.category_id,f.title,f.question,f.answer,f.summary,f.keywords,f.status,f.is_top,f.hot_count,f.published_at,f.version,f.created_at,f.updated_at,f.deleted_at</sql>
+    <sql id="where">deleted_at IS NULL
+        <if test="keyword != null and keyword != ''">AND (title LIKE CONCAT('%',#{keyword},'%') OR question LIKE CONCAT('%',#{keyword},'%') OR keywords LIKE CONCAT('%',#{keyword},'%'))</if>
+        <if test="categoryId != null">AND category_id=#{categoryId}</if><if test="status != null and status != ''">AND status=#{status}</if>
+    </sql>
+    <select id="selectPage" resultMap="FaqMap">SELECT <include refid="columns"/> FROM faq_item WHERE <include refid="where"/> ORDER BY is_top DESC,updated_at DESC LIMIT #{offset},#{pageSize}</select>
+    <select id="countPage" resultType="long">SELECT COUNT(*) FROM faq_item WHERE <include refid="where"/></select>
+    <select id="selectPublishedPage" resultMap="FaqMap">
+        SELECT <include refid="qualifiedColumns"/>
+        FROM faq_item f INNER JOIN faq_category c ON c.id=f.category_id
+        WHERE f.deleted_at IS NULL AND f.status='PUBLISHED' AND c.status='ENABLED'
+        <if test="keyword != null and keyword != ''">AND (f.title LIKE CONCAT('%',#{keyword},'%') OR f.question LIKE CONCAT('%',#{keyword},'%') OR f.keywords LIKE CONCAT('%',#{keyword},'%'))</if>
+        <if test="categoryId != null">AND f.category_id=#{categoryId}</if>
+        ORDER BY f.is_top DESC,f.updated_at DESC LIMIT #{offset},#{pageSize}
+    </select>
+    <select id="countPublishedPage" resultType="long">
+        SELECT COUNT(*) FROM faq_item f INNER JOIN faq_category c ON c.id=f.category_id
+        WHERE f.deleted_at IS NULL AND f.status='PUBLISHED' AND c.status='ENABLED'
+        <if test="keyword != null and keyword != ''">AND (f.title LIKE CONCAT('%',#{keyword},'%') OR f.question LIKE CONCAT('%',#{keyword},'%') OR f.keywords LIKE CONCAT('%',#{keyword},'%'))</if>
+        <if test="categoryId != null">AND f.category_id=#{categoryId}</if>
+    </select>
+    <select id="selectPublishedByPublicId" resultMap="FaqMap">
+        SELECT <include refid="qualifiedColumns"/>
+        FROM faq_item f INNER JOIN faq_category c ON c.id=f.category_id
+        WHERE f.public_id=#{publicId} AND f.deleted_at IS NULL
+          AND f.status='PUBLISHED' AND c.status='ENABLED'
+        LIMIT 1
+    </select>
+    <select id="selectByPublicId" resultMap="FaqMap">SELECT <include refid="columns"/> FROM faq_item WHERE public_id=#{publicId} AND deleted_at IS NULL LIMIT 1</select>
+    <insert id="insert" parameterType="com.xc.agent.model.po.FaqItemPO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO faq_item(public_id,category_id,title,question,answer,summary,keywords,status,is_top,hot_count,published_at,version,created_at,updated_at)
+        VALUES(#{publicId},#{categoryId},#{title},#{question},#{answer},#{summary},#{keywords},#{status},#{isTop},0,#{publishedAt},0,#{createdAt},#{updatedAt})
+    </insert>
+    <update id="update">UPDATE faq_item SET category_id=#{item.categoryId},title=#{item.title},question=#{item.question},answer=#{item.answer},summary=#{item.summary},keywords=#{item.keywords},is_top=#{item.isTop},version=version+1
+        WHERE id=#{item.id} AND version=#{expectedVersion} AND deleted_at IS NULL</update>
+    <update id="updateStatus">UPDATE faq_item SET status=#{status},published_at=#{publishedAt},version=version+1 WHERE id=#{id} AND version=#{expectedVersion} AND deleted_at IS NULL</update>
+</mapper>

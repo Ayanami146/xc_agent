@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.ChatMessageMapper">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_message(session_id, request_id, role, status, content, stage)
+        VALUES (#{sessionId}, #{requestId}, #{role}, #{status}, #{content}, #{stage})
+    </insert>
+
+    <!-- 会话归属已由 Service 通过 ChatSessionMapper 校验，这里只查询消息及当前用户反馈。 -->
+    <select id="list" resultType="com.xc.agent.model.po.ChatMessageListRow">
+        SELECT m.id,
+               m.request_id AS requestId,
+               m.role,
+               m.content,
+               m.status,
+               m.created_at AS createdAt,
+               m.stage,
+               f.feedback
+        FROM chat_message m
+        LEFT JOIN message_feedback f
+               ON f.message_id = m.id
+              AND f.user_id = #{userId}
+        WHERE m.session_id = #{sessionId}
+        ORDER BY m.id ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM chat_message
+        WHERE session_id = #{sessionId}
+    </select>
+
+    <select id="selectAssistantByRequestIdAndUserId"
+            resultType="com.xc.agent.model.po.ChatMessagePO">
+        SELECT m.id,
+               m.session_id AS sessionId,
+               m.request_id AS requestId,
+               m.role,
+               m.status,
+               m.content,
+               m.stage,
+               m.model_name AS modelName,
+               m.token_count AS tokenCount,
+               m.created_at AS createdAt,
+               m.updated_at AS updatedAt
+        FROM chat_message m
+        INNER JOIN chat_session s ON s.id = m.session_id
+        WHERE m.request_id = #{requestId}
+          AND m.role = 'assistant'
+          AND s.user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="selectOwnedAssistantById"
+            resultType="com.xc.agent.model.po.ChatMessagePO">
+        SELECT m.id,
+               m.session_id AS sessionId,
+               m.request_id AS requestId,
+               m.role,
+               m.status,
+               m.content,
+               m.stage,
+               m.created_at AS createdAt,
+               m.updated_at AS updatedAt
+        FROM chat_message m
+        INNER JOIN chat_session s ON s.id = m.session_id
+        WHERE m.id = #{messageId}
+          AND m.role = 'assistant'
+          AND s.user_id = #{userId}
+          AND s.deleted_at IS NULL
+        LIMIT 1
+    </select>
+
+    <update id="updateCompleted">
+        UPDATE chat_message
+        SET status = 'COMPLETED',
+            content = #{content},
+            stage = NULL,
+            model_name = #{modelName},
+            token_count = #{tokenCount},
+            updated_at = UTC_TIMESTAMP(3)
+        WHERE id = #{messageId}
+          AND status = 'STREAMING'
+    </update>
+
+    <update id="updateFailed">
+        UPDATE chat_message
+        SET status = 'FAILED',
+            content = #{content},
+            stage = NULL,
+            updated_at = UTC_TIMESTAMP(3)
+        WHERE id = #{messageId}
+          AND status = 'STREAMING'
+    </update>
+
+    <update id="updateInterruptedByRequestId">
+        UPDATE chat_message m
+        INNER JOIN chat_request r ON r.id = m.request_id
+        SET m.status = 'INTERRUPTED',
+            m.stage = NULL,
+            m.updated_at = UTC_TIMESTAMP(3)
+        WHERE m.request_id = #{requestId}
+          AND r.user_id = #{userId}
+          AND m.role = 'assistant'
+          AND m.status = 'STREAMING'
+    </update>
+</mapper>

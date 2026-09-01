@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.TicketMapper">
+    <resultMap id="TicketResultMap" type="com.xc.agent.model.po.TicketPO">
+        <id property="id" column="id"/><result property="publicId" column="public_id"/>
+        <result property="userId" column="user_id"/><result property="title" column="title"/>
+        <result property="category" column="category"/><result property="deviceBrand" column="device_brand"/>
+        <result property="deviceModel" column="device_model"/><result property="description" column="description"/>
+        <result property="contact" column="contact"/><result property="status" column="status"/>
+        <result property="assigneeId" column="assignee_id"/><result property="resolution" column="resolution"/>
+        <result property="resolvedAt" column="resolved_at"/><result property="closedAt" column="closed_at"/>
+        <result property="version" column="version"/><result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/><result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+    <sql id="columns">id, public_id, user_id, title, category, device_brand, device_model,
+        description, contact, status, assignee_id, resolution, resolved_at, closed_at,
+        version, created_at, updated_at, deleted_at</sql>
+    <sql id="adminWhere">
+        deleted_at IS NULL
+        <if test="keyword != null and keyword != ''">
+            AND (public_id LIKE CONCAT('%',#{keyword},'%') OR title LIKE CONCAT('%',#{keyword},'%')
+                 OR contact LIKE CONCAT('%',#{keyword},'%'))
+        </if>
+        <if test="status != null and status != ''">AND status = #{status}</if>
+        <if test="assigneeId != null">AND assignee_id = #{assigneeId}</if>
+        <if test="from != null">AND created_at &gt;= #{from}</if>
+        <if test="to != null">AND created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)</if>
+    </sql>
+    <select id="selectAdminPage" resultMap="TicketResultMap">
+        SELECT <include refid="columns"/> FROM ticket WHERE <include refid="adminWhere"/>
+        ORDER BY updated_at DESC LIMIT #{offset}, #{pageSize}
+    </select>
+    <select id="countAdminPage" resultType="long">
+        SELECT COUNT(*) FROM ticket WHERE <include refid="adminWhere"/>
+    </select>
+    <select id="selectByPublicId" resultMap="TicketResultMap">
+        SELECT <include refid="columns"/> FROM ticket
+        WHERE public_id = #{publicId} AND deleted_at IS NULL LIMIT 1
+    </select>
+    <update id="assign">
+        UPDATE ticket SET assignee_id=#{assigneeId}, status='PROCESSING', version=version+1
+        WHERE id=#{id} AND version=#{expectedVersion} AND status='PENDING' AND deleted_at IS NULL
+    </update>
+    <update id="transition">
+        UPDATE ticket SET status=#{toStatus}, resolution=CASE WHEN #{toStatus}='RESOLVED' THEN #{resolution} ELSE resolution END,
+          resolved_at=CASE WHEN #{toStatus}='RESOLVED' THEN #{resolvedAt} ELSE resolved_at END,
+          closed_at=CASE WHEN #{toStatus}='CLOSED' THEN #{closedAt} ELSE closed_at END,
+          version=version+1
+        WHERE id=#{id} AND version=#{expectedVersion} AND status=#{fromStatus} AND deleted_at IS NULL
+    </update>
+</mapper>

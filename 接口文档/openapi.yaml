@@ -1,0 +1,805 @@
+openapi: 3.1.0
+info:
+  title: 信创智能客服公共 API
+  version: 1.0.0
+  description: 用户 Web 端公共接口。管理端和内部接口的人读契约见《智能客服系统接口文档.md》。
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Chat
+  - name: Content
+  - name: Tickets
+paths:
+  /auth/sms-codes:
+    post:
+      tags: [Auth]
+      operationId: sendSmsCode
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: { type: string, pattern: '^1[0-9]{10}$' }
+      responses:
+        '204': { description: 已受理；不暴露手机号是否注册 }
+        default: { $ref: '#/components/responses/Problem' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/PasswordLogin'
+                - $ref: '#/components/schemas/SmsLogin'
+              discriminator: { propertyName: mode }
+      responses:
+        '200':
+          description: 登录成功，同时设置 XC_REFRESH_TOKEN HttpOnly Cookie
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthSessionResponse' }
+        default: { $ref: '#/components/responses/Problem' }
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      operationId: refreshSession
+      security:
+        - refreshCookie: []
+      responses:
+        '200':
+          description: refresh token 轮换成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthSessionResponse' }
+        default: { $ref: '#/components/responses/Problem' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      security:
+        - refreshCookie: []
+      responses:
+        '204': { description: 已注销当前设备 }
+        default: { $ref: '#/components/responses/Problem' }
+  /sessions:
+    get:
+      tags: [Chat]
+      operationId: listSessions
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: keyword
+          in: query
+          schema: { type: string, maxLength: 50 }
+      responses:
+        '200':
+          description: 本人会话
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties:
+                      data: { $ref: '#/components/schemas/ChatSessionPage' }
+        default: { $ref: '#/components/responses/Problem' }
+  /sessions/{sessionId}:
+    parameters:
+      - $ref: '#/components/parameters/SessionId'
+    patch:
+      tags: [Chat]
+      operationId: renameSession
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string, minLength: 1, maxLength: 30 }
+      responses:
+        '200':
+          description: 更新后的会话
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/ChatSession' } }
+        default: { $ref: '#/components/responses/Problem' }
+    delete:
+      tags: [Chat]
+      operationId: deleteSession
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204': { description: 已软删除 }
+        default: { $ref: '#/components/responses/Problem' }
+  /sessions/{sessionId}/messages:
+    get:
+      tags: [Chat]
+      operationId: listMessages
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 会话消息
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/ChatMessagePage' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /chat/stream:
+    post:
+      tags: [Chat]
+      operationId: streamChat
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChatStreamRequest' }
+      responses:
+        '200':
+          description: SSE 事件流，事件结构见 sse-events.schema.json
+          headers:
+            Cache-Control:
+              schema: { type: string, const: no-cache }
+            X-Accel-Buffering:
+              schema: { type: string, const: 'no' }
+          content:
+            text/event-stream:
+              schema: { type: string }
+        default: { $ref: '#/components/responses/Problem' }
+  /chat/requests/{requestId}:
+    get:
+      tags: [Chat]
+      operationId: getChatRequest
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: 请求持久状态
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/ChatRequestResult' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /chat/requests/{requestId}/cancel:
+    post:
+      tags: [Chat]
+      operationId: cancelChatRequest
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: 当前请求状态
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/ChatRequestResult' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /messages/{messageId}/feedback:
+    put:
+      tags: [Chat]
+      operationId: setMessageFeedback
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema: { type: integer, format: int64, minimum: 1 }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [feedback]
+              properties:
+                feedback:
+                  type: [string, 'null']
+                  enum: [up, down, null]
+      responses:
+        '204': { description: 已保存 }
+        default: { $ref: '#/components/responses/Problem' }
+  /faq/categories:
+    get:
+      tags: [Content]
+      operationId: listFaqCategories
+      responses:
+        '200':
+          description: FAQ 分类
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Category' }
+        default: { $ref: '#/components/responses/Problem' }
+  /faq:
+    get:
+      tags: [Content]
+      operationId: listFaq
+      parameters:
+        - $ref: '#/components/parameters/Keyword'
+        - $ref: '#/components/parameters/CategoryId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: FAQ 分页
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/KnowledgeItemPage' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /faq/{faqId}:
+    get:
+      tags: [Content]
+      operationId: getFaqDetail
+      parameters:
+        - name: faqId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 已发布且分类启用的 FAQ 详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/FaqDetail' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /manuals:
+    get:
+      tags: [Content]
+      operationId: listManuals
+      parameters:
+        - $ref: '#/components/parameters/Keyword'
+        - $ref: '#/components/parameters/CategoryId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 手册分页
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/KnowledgeItemPage' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /manuals/{manualId}/download-url:
+    get:
+      tags: [Content]
+      operationId: getManualDownloadUrl
+      parameters:
+        - name: manualId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 五分钟有效的签名地址
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/DownloadGrant' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /ticket-attachments:
+    post:
+      tags: [Tickets]
+      operationId: uploadTicketAttachment
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: 临时附件已上传并通过扫描
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/TicketAttachment' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /tickets:
+    get:
+      tags: [Tickets]
+      operationId: listTickets
+      parameters:
+        - $ref: '#/components/parameters/Keyword'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/TicketStatus' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 本人工单
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/TicketPage' } }
+        default: { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [Tickets]
+      operationId: createTicket
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateTicketRequest' }
+      responses:
+        '201':
+          description: 工单已创建
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/Ticket' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /tickets/{ticketId}:
+    get:
+      tags: [Tickets]
+      operationId: getTicket
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+      responses:
+        '200':
+          description: 本人工单详情
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/Ticket' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /tickets/{ticketId}/replies:
+    post:
+      tags: [Tickets]
+      operationId: replyTicket
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string, minLength: 1, maxLength: 1000 }
+                attachmentIds:
+                  type: array
+                  maxItems: 5
+                  items: { type: string }
+      responses:
+        '201':
+          description: 回复已创建
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/TicketReply' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /tickets/{ticketId}/close:
+    post:
+      tags: [Tickets]
+      operationId: closeTicket
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204': { description: 工单已关闭 }
+        default: { $ref: '#/components/responses/Problem' }
+  /tickets/{ticketId}/reopen:
+    post:
+      tags: [Tickets]
+      operationId: reopenTicket
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 500 }
+      responses:
+        '200':
+          description: 已重开
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/Ticket' } }
+        default: { $ref: '#/components/responses/Problem' }
+  /tickets/{ticketId}/attachments/{attachmentId}/download-url:
+    get:
+      tags: [Tickets]
+      operationId: getTicketAttachmentDownloadUrl
+      parameters:
+        - $ref: '#/components/parameters/TicketId'
+        - name: attachmentId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 五分钟有效的签名地址
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/EnvelopeBase'
+                  - properties: { data: { $ref: '#/components/schemas/DownloadGrant' } }
+        default: { $ref: '#/components/responses/Problem' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: XC_REFRESH_TOKEN
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 128 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    Keyword:
+      name: keyword
+      in: query
+      schema: { type: string, maxLength: 100 }
+    CategoryId:
+      name: categoryId
+      in: query
+      schema: { type: string }
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    RequestIdPath:
+      name: requestId
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    TicketId:
+      name: ticketId
+      in: path
+      required: true
+      schema: { type: string }
+  responses:
+    Problem:
+      description: RFC 7807 业务错误
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+  schemas:
+    EnvelopeBase:
+      type: object
+      required: [requestId, data]
+      properties:
+        requestId: { type: string }
+        data: {}
+    Problem:
+      type: object
+      required: [title, status, code, requestId]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        code: { type: string, pattern: '^[A-Z0-9_]+$' }
+        detail: { type: string }
+        requestId: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: { type: string }
+              message: { type: string }
+    PasswordLogin:
+      type: object
+      required: [mode, account, password, rememberDevice]
+      properties:
+        mode: { type: string, const: password }
+        account: { type: string, minLength: 1, maxLength: 100 }
+        password: { type: string, minLength: 6, maxLength: 128, format: password }
+        rememberDevice: { type: boolean }
+    SmsLogin:
+      type: object
+      required: [mode, phone, code, rememberDevice]
+      properties:
+        mode: { type: string, const: sms }
+        phone: { type: string, pattern: '^1[0-9]{10}$' }
+        code: { type: string, pattern: '^[0-9]{6}$' }
+        rememberDevice: { type: boolean }
+    AuthUser:
+      type: object
+      required: [id, name, phone, avatarText]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        phone: { type: string, description: 脱敏手机号 }
+        avatarText: { type: string, maxLength: 2 }
+    AuthSessionResponse:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - properties:
+            data:
+              type: object
+              required: [accessToken, expiresAt, user]
+              properties:
+                accessToken: { type: string }
+                expiresAt: { type: string, format: date-time }
+                user: { $ref: '#/components/schemas/AuthUser' }
+    ChatSession:
+      type: object
+      required: [id, title, preview, updatedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        preview: { type: string }
+        updatedAt: { type: string, format: date-time }
+    Citation:
+      type: object
+      required: [title, snippet, sourceLocator]
+      properties:
+        title: { type: string }
+        sourceId: { type: integer, format: int64 }
+        snippet: { type: string }
+        sourceLocator: { type: string }
+        page: { type: integer, minimum: 1 }
+    ChatMessage:
+      type: object
+      required: [id, role, content, status, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        requestId: { type: integer, format: int64 }
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string }
+        status: { type: string, enum: [COMPLETED, STREAMING, INTERRUPTED, FAILED] }
+        createdAt: { type: string, format: date-time }
+        stage: { type: string, enum: [queued, safety, intent, retrieval, generation, validation] }
+        citations:
+          type: array
+          items: { $ref: '#/components/schemas/Citation' }
+        feedback: { type: string, enum: [up, down] }
+    ChatStreamRequest:
+      type: object
+      required: [message]
+      properties:
+        sessionId: { type: integer, format: int64, minimum: 1, description: 首次会话必须省略 }
+        message: { type: string, minLength: 1, maxLength: 8000 }
+    ChatRequestResult:
+      type: object
+      required: [status, sessionId, citations, error]
+      properties:
+        status: { type: string, enum: [ACCEPTED, RUNNING, SUCCEEDED, FAILED, CANCELLED, INTERRUPTED] }
+        sessionId: { type: integer, format: int64 }
+        assistantMessageId: { type: integer, format: int64 }
+        answer: { type: string, description: 仅 SUCCEEDED 返回 }
+        citations:
+          type: array
+          items: { $ref: '#/components/schemas/Citation' }
+        error:
+          type: [object, 'null']
+          properties:
+            code: { type: string }
+            message: { type: string }
+        startedAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time }
+    Category:
+      type: object
+      required: [id, name, sortOrder]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        sortOrder: { type: integer }
+    KnowledgeItem:
+      type: object
+      required: [id, kind, title, summary, category, updatedAt]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [FAQ, MANUAL] }
+        title: { type: string }
+        summary: { type: string }
+        category: { type: string }
+        updatedAt: { type: string, format: date-time }
+        hotCount: { type: integer, minimum: 0 }
+        question: { type: string }
+    FaqDetail:
+      type: object
+      required: [id, categoryId, categoryName, title, question, answer, summary, hotCount, updatedAt]
+      properties:
+        id: { type: string }
+        categoryId: { type: string }
+        categoryName: { type: string }
+        title: { type: string }
+        question: { type: string }
+        answer: { type: string }
+        summary: { type: string }
+        hotCount: { type: integer, minimum: 0 }
+        updatedAt: { type: string, format: date-time }
+    DownloadGrant:
+      type: object
+      required: [url, expiresAt]
+      properties:
+        url: { type: string, format: uri }
+        expiresAt: { type: string, format: date-time }
+    TicketStatus:
+      type: string
+      enum: [PENDING, PROCESSING, WAITING_USER, RESOLVED, CLOSED]
+    TicketAttachment:
+      type: object
+      required: [id, fileName, size, contentType]
+      properties:
+        id: { type: string }
+        fileName: { type: string }
+        size: { type: integer, minimum: 0 }
+        contentType: { type: string }
+    TicketReply:
+      type: object
+      required: [id, sender, senderName, content, createdAt]
+      properties:
+        id: { type: string }
+        sender: { type: string, enum: [user, admin] }
+        senderName: { type: string }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+    TicketTimelineItem:
+      type: object
+      required: [id, title, description, status, createdAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        status: { $ref: '#/components/schemas/TicketStatus' }
+        createdAt: { type: string, format: date-time }
+    Ticket:
+      type: object
+      required: [id, title, category, deviceBrand, deviceModel, description, contact, status, createdAt, updatedAt, attachments, replies, timeline]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        category: { type: string }
+        deviceBrand: { type: string }
+        deviceModel: { type: string }
+        description: { type: string }
+        contact: { type: string, description: 返回时必须脱敏 }
+        status: { $ref: '#/components/schemas/TicketStatus' }
+        assignee: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        attachments:
+          type: array
+          items: { $ref: '#/components/schemas/TicketAttachment' }
+        replies:
+          type: array
+          items: { $ref: '#/components/schemas/TicketReply' }
+        timeline:
+          type: array
+          items: { $ref: '#/components/schemas/TicketTimelineItem' }
+    CreateTicketRequest:
+      type: object
+      required: [title, category, deviceBrand, deviceModel, description, contact]
+      properties:
+        title: { type: string, minLength: 4, maxLength: 60 }
+        category: { type: string, minLength: 1, maxLength: 50 }
+        deviceBrand: { type: string, minLength: 1, maxLength: 50 }
+        deviceModel: { type: string, minLength: 1, maxLength: 100 }
+        description: { type: string, minLength: 10, maxLength: 2000 }
+        contact: { type: string, minLength: 5, maxLength: 100 }
+        attachmentIds:
+          type: array
+          maxItems: 5
+          uniqueItems: true
+          items: { type: string }
+    ChatSessionPage:
+      $ref: '#/components/schemas/PageOfChatSession'
+    ChatMessagePage:
+      $ref: '#/components/schemas/PageOfChatMessage'
+    KnowledgeItemPage:
+      $ref: '#/components/schemas/PageOfKnowledgeItem'
+    TicketPage:
+      $ref: '#/components/schemas/PageOfTicket'
+    PageOfChatSession:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ChatSession' } }
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        pageSize: { type: integer, minimum: 1 }
+    PageOfChatMessage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ChatMessage' } }
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        pageSize: { type: integer, minimum: 1 }
+    PageOfKnowledgeItem:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/KnowledgeItem' } }
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        pageSize: { type: integer, minimum: 1 }
+    PageOfTicket:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Ticket' } }
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        pageSize: { type: integer, minimum: 1 }

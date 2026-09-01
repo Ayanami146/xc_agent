@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.AdminDashboardMapper">
+    <select id="selectMetrics" resultType="map">
+        SELECT
+          (SELECT COUNT(*) FROM customer_user WHERE deleted_at IS NULL) AS userCount,
+          (SELECT COUNT(*) FROM chat_session WHERE deleted_at IS NULL) AS sessionCount,
+          (SELECT COUNT(*) FROM ticket WHERE deleted_at IS NULL AND status IN ('PENDING','PROCESSING','WAITING_USER')) AS openTicketCount,
+          (SELECT COUNT(*) FROM faq_item WHERE deleted_at IS NULL AND status = 'PUBLISHED') AS publishedFaqCount,
+          (SELECT COUNT(*) FROM manual_doc WHERE deleted_at IS NULL AND status = 'PUBLISHED') AS publishedManualCount
+    </select>
+    <select id="selectTicketStatus" resultType="map">
+        SELECT status AS name, COUNT(*) AS value FROM ticket
+        WHERE deleted_at IS NULL GROUP BY status ORDER BY status
+    </select>
+    <select id="selectTicketTrend" resultType="map">
+        SELECT DATE(created_at) AS day, COUNT(*) AS value FROM ticket
+        WHERE deleted_at IS NULL AND created_at &gt;= UTC_DATE() - INTERVAL 6 DAY
+        GROUP BY DATE(created_at) ORDER BY day
+    </select>
+</mapper>

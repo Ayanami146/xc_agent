@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.ManualCategoryMapper">
+    <resultMap id="CategoryMap" type="com.xc.agent.model.po.ManualCategoryPO">
+        <id property="id" column="id"/><result property="publicId" column="public_id"/>
+        <result property="name" column="name"/><result property="sortOrder" column="sort_order"/>
+        <result property="status" column="status"/><result property="version" column="version"/>
+        <result property="createdAt" column="created_at"/><result property="updatedAt" column="updated_at"/>
+    </resultMap>
+    <sql id="columns">id,public_id,name,sort_order,status,version,created_at,updated_at</sql>
+    <select id="selectAll" resultMap="CategoryMap">SELECT <include refid="columns"/> FROM manual_category ORDER BY sort_order,id</select>
+    <select id="selectByPublicId" resultMap="CategoryMap">SELECT <include refid="columns"/> FROM manual_category WHERE public_id=#{publicId} LIMIT 1</select>
+    <insert id="insert" parameterType="com.xc.agent.model.po.ManualCategoryPO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO manual_category(public_id,name,sort_order,status,version,created_at,updated_at)
+        VALUES(#{publicId},#{name},#{sortOrder},#{status},0,#{createdAt},#{updatedAt})
+    </insert>
+    <update id="update">UPDATE manual_category SET name=#{category.name},sort_order=#{category.sortOrder},status=#{category.status},version=version+1
+        WHERE id=#{category.id} AND version=#{expectedVersion}</update>
+    <delete id="delete">DELETE FROM manual_category WHERE id=#{id} AND version=#{expectedVersion}</delete>
+    <select id="countItems" resultType="long">SELECT COUNT(*) FROM manual_doc WHERE category_id=#{id} AND deleted_at IS NULL</select>
+</mapper>

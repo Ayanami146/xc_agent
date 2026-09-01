@@ -1,0 +1,171 @@
+{
+  "input": "C:\\Users\\Ayana\\Desktop\\\u4e0a\u4e0b\u6587\\\u5f53\u524d\u9879\u76ee\u4e0a\u4e0b\u6587\u7cfb\u7edf\u6539\u9020\u5b66\u4e60\u6307\u5357.docx",
+  "fonts_by_char_count": {
+    "Consolas": 36221,
+    "Calibri": 3833
+  },
+  "direct_run_formatting_runs": 1096,
+  "direct_paragraph_formatting_paragraphs": 93,
+  "heading_like_paragraphs_not_heading_style": [
+    {
+      "para_index": 1,
+      "text": "\u8fb9\u6539\u8fb9\u5b66\u6307\u5357",
+      "style": "Normal"
+    },
+    {
+      "para_index": 2,
+      "text": "\u5728\u5f53\u524d agent_service \u4e2d\u5b9e\u73b0\u4e0a\u4e0b\u6587\u7cfb\u7edf",
+      "style": "Normal"
+    },
+    {
+      "para_index": 7,
+      "text": "\u6539\u9020\u540e\u7684 LangGraph",
+      "style": "Normal"
+    },
+    {
+      "para_index": 13,
+      "text": "\u6267\u884c\u547d\u4ee4  agent_service/pyproject.toml + uv.lock",
+      "style": "Normal"
+    },
+    {
+      "para_index": 15,
+      "text": "\u8ffd\u52a0\u914d\u7f6e  agent_service/.env.example \u548c\u4f60\u672c\u5730\u7684 .env",
+      "style": "Normal"
+    },
+    {
+      "para_index": 18,
+      "text": "\u4fee\u6539\u6587\u4ef6  agent_service/src/agent_service/config.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 23,
+      "text": "\u65b0\u589e\u6587\u4ef6  agent_service/src/agent_service/schemas/context.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 28,
+      "text": "\u4fee\u6539\u6587\u4ef6  agent_service/src/agent_service/core/exceptions.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 32,
+      "text": "\u65b0\u589e\u6587\u4ef6  agent_service/src/agent_service/services/context_repository.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 37,
+      "text": "\u4fee\u6539\u6587\u4ef6  agent_service/src/agent_service/models/gateway.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 41,
+      "text": "\u65b0\u589e\u6587\u4ef6  agent_service/src/agent_service/services/context_manager.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 46,
+      "text": "\u66ff\u6362\u6587\u4ef6\u5185\u5bb9  agent_service/src/agent_service/graph/state.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 50,
+      "text": "\u66ff\u6362\u6838\u5fc3\u7f16\u6392  agent_service/src/agent_service/graph/workflow.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 55,
+      "text": "\u4fee\u6539\u6587\u4ef6  agent_service/src/agent_service/services/agent_runtime.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 59,
+      "text": "\u66ff\u6362\u6587\u4ef6\u5185\u5bb9  agent_service/src/agent_service/main.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 64,
+      "text": "\u4fee\u6539\u6587\u4ef6  agent_service/src/agent_service/api/routes/chat.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 68,
+      "text": "\u4fee\u6539\u6587\u4ef6  agent_service/tests/conftest.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 70,
+      "text": "\u65b0\u589e\u6587\u4ef6  agent_service/tests/test_context_system.py",
+      "style": "Normal"
+    },
+    {
+      "para_index": 73,
+      "text": "\u6267\u884c\u547d\u4ee4  agent_service/",
+      "style": "Normal"
+    },
+    {
+      "para_index": 97,
+      "text": "\u8fd9\u6b21\u53ea\u5b8c\u6210\u4e00\u4e2a\u95ed\u73af",
+      "style": "Normal"
+    }
+  ],
+  "examples": {
+    "direct_paragraph_formatting": [
+      {
+        "para_index": 1,
+        "text": "\u8fb9\u6539\u8fb9\u5b66\u6307\u5357",
+        "style": "Normal"
+      },
+      {
+        "para_index": 2,
+        "text": "\u5728\u5f53\u524d agent_service \u4e2d\u5b9e\u73b0\u4e0a\u4e0b\u6587\u7cfb\u7edf",
+        "style": "Normal"
+      },
+      {
+        "para_index": 3,
+        "text": "Redis DB 4 \u70ed\u4e0a\u4e0b\u6587 + MongoDB \u6301\u4e45\u5316 + LangGraph \u52a0\u8f7d\u3001\u538b\u7f29\u3001\u4fdd\u5b58",
+        "style": "Normal"
+      },
+      {
+        "para_index": 4,
+        "text": "\u57fa\u4e8e\u5f53\u524d\u4ed3\u5e93\u4ee3\u7801\u7f16\u5199 \u00b7 2026-08-28 \u00b7 \u53ea\u8bb2\u9879\u76ee\u5982\u4f55\u589e\u52a0\u548c\u4fee\u6539",
+        "style": "Normal"
+      },
+      {
+        "para_index": 5,
+        "text": "",
+        "style": "Normal"
+      }
+    ],
+    "direct_run_formatting": [
+      {
+        "para_index": 1,
+        "run_text": "\u8fb9\u6539\u8fb9\u5b66\u6307\u5357",
+        "style": "Normal"
+      },
+      {
+        "para_index": 2,
+        "run_text": "\u5728\u5f53\u524d agent_service \u4e2d\u5b9e\u73b0\u4e0a\u4e0b\u6587\u7cfb\u7edf",
+        "style": "Normal"
+      },
+      {
+        "para_index": 3,
+        "run_text": "Redis DB 4 \u70ed\u4e0a\u4e0b\u6587 + MongoDB \u6301\u4e45\u5316 + LangGraph \u52a0\u8f7d\u3001\u538b\u7f29\u3001\u4fdd\u5b58",
+        "style": "Normal"
+      },
+      {
+        "para_index": 4,
+        "run_text": "\u57fa\u4e8e\u5f53\u524d\u4ed3\u5e93\u4ee3\u7801\u7f16\u5199 \u00b7 2026-08-28 \u00b7 \u53ea\u8bb2\u9879\u76ee\u5982\u4f55\u589e\u52a0\u548c\u4fee\u6539",
+        "style": "Normal"
+      },
+      {
+        "para_index": 7,
+        "run_text": "\u6539\u9020\u540e\u7684 LangGraph",
+        "style": "Normal"
+      }
+    ]
+  },
+  "notes": [
+    "Direct formatting is not always wrong, but it often causes inconsistent output when templates change.",
+    "Heading-like paragraphs not using Heading styles can break TOC and accessibility."
+  ]
+}

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.CustomerUserMapper">
+    <resultMap id="CustomerUserResultMap" type="com.xc.agent.model.po.CustomerUserPO">
+        <id property="id" column="id"/>
+        <result property="publicId" column="public_id"/>
+        <result property="account" column="account"/>
+        <result property="phone" column="phone"/>
+        <result property="phoneHash" column="phone_hash"/>
+        <result property="passwordHash" column="password_hash"/>
+        <result property="nickname" column="nickname"/>
+        <result property="avatarText" column="avatar_text"/>
+        <result property="status" column="status"/>
+        <result property="version" column="version"/>
+        <result property="lastLoginAt" column="last_login_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+
+    <sql id="CustomerUserColumns">
+        id, public_id, account, phone, phone_hash, password_hash, nickname, avatar_text,
+        status, version, last_login_at, created_at, updated_at, deleted_at
+    </sql>
+
+    <select id="selectByAccount" resultMap="CustomerUserResultMap">
+        SELECT <include refid="CustomerUserColumns"/>
+        FROM customer_user
+        WHERE account = #{account} AND deleted_at IS NULL
+        LIMIT 1
+    </select>
+
+    <select id="selectByPhoneHash" resultMap="CustomerUserResultMap">
+        SELECT <include refid="CustomerUserColumns"/>
+        FROM customer_user
+        WHERE phone_hash = #{phoneHash} AND deleted_at IS NULL
+        LIMIT 1
+    </select>
+
+    <select id="selectById" resultMap="CustomerUserResultMap">
+        SELECT <include refid="CustomerUserColumns"/>
+        FROM customer_user
+        WHERE id = #{id} AND deleted_at IS NULL
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.xc.agent.model.po.CustomerUserPO"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO customer_user
+        (public_id, account, phone, phone_hash, password_hash, nickname, avatar_text,
+         status, version, last_login_at, created_at, updated_at, deleted_at)
+        VALUES
+        (#{publicId}, #{account}, #{phone}, #{phoneHash}, #{passwordHash}, #{nickname}, #{avatarText},
+         #{status}, #{version}, #{lastLoginAt}, #{createdAt}, #{updatedAt}, #{deletedAt})
+    </insert>
+
+    <update id="updateLastLoginAt">
+        UPDATE customer_user
+        SET last_login_at = #{lastLoginAt}, version = version + 1
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
+
+    <update id="updatePasswordHash">
+        UPDATE customer_user
+        SET password_hash = #{passwordHash}, version = version + 1
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
+</mapper>

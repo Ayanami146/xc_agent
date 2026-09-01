@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://support.example.com/schemas/chat-sse-event-v1.json",
+  "title": "Chat SSE Event v1",
+  "oneOf": [
+    { "$ref": "#/$defs/meta" },
+    { "$ref": "#/$defs/status" },
+    { "$ref": "#/$defs/delta" },
+    { "$ref": "#/$defs/citation" },
+    { "$ref": "#/$defs/usage" },
+    { "$ref": "#/$defs/heartbeat" },
+    { "$ref": "#/$defs/done" },
+    { "$ref": "#/$defs/error" }
+  ],
+  "$defs": {
+    "base": {
+      "type": "object",
+      "required": ["event", "requestId", "sequence", "occurredAt", "payload"],
+      "properties": {
+        "event": { "type": "string" },
+        "requestId": { "type": "integer", "minimum": 1 },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "occurredAt": { "type": "string", "format": "date-time" },
+        "payload": { "type": "object" }
+      }
+    },
+    "citationItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "snippet", "sourceLocator"],
+      "properties": {
+        "title": { "type": "string" },
+        "sourceId": { "type": "integer", "minimum": 1 },
+        "snippet": { "type": "string" },
+        "sourceLocator": { "type": "string" },
+        "page": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "meta": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "properties": {
+            "event": { "const": "meta" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["sessionId", "userMessageId", "assistantMessageId"],
+              "properties": {
+                "sessionId": { "type": "integer", "minimum": 1 },
+                "userMessageId": { "type": "integer", "minimum": 1 },
+                "assistantMessageId": { "type": "integer", "minimum": 1 }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "status": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "properties": {
+            "event": { "const": "status" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["stage", "message"],
+              "properties": {
+                "stage": { "enum": ["queued", "safety", "intent", "retrieval", "generation", "validation"] },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "delta": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "properties": {
+            "event": { "const": "delta" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["content"],
+              "properties": { "content": { "type": "string", "minLength": 1 } }
+            }
+          }
+        }
+      ]
+    },
+    "citation": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "properties": {
+            "event": { "const": "citation" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["sources"],
+              "properties": {
+                "sources": { "type": "array", "items": { "$ref": "#/$defs/citationItem" } }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "usage": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "properties": {
+            "event": { "const": "usage" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["model", "promptTokens", "completionTokens", "totalTokens", "estimatedCost"],
+              "properties": {
+                "model": { "type": "string" },
+                "promptTokens": { "type": "integer", "minimum": 0 },
+                "completionTokens": { "type": "integer", "minimum": 0 },
+                "totalTokens": { "type": "integer", "minimum": 0 },
+                "estimatedCost": { "type": "number", "minimum": 0 }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "heartbeat": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "properties": {
+            "event": { "const": "heartbeat" },
+            "payload": { "type": "object", "maxProperties": 1 }
+          }
+        }
+      ]
+    },
+    "done": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "properties": {
+            "event": { "const": "done" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["finishReason", "messageId"],
+              "properties": {
+                "finishReason": { "type": "string" },
+                "messageId": { "type": "integer", "minimum": 1 }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "error": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "properties": {
+            "event": { "const": "error" },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["code", "message", "retryable"],
+              "properties": {
+                "code": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+                "message": { "type": "string" },
+                "retryable": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

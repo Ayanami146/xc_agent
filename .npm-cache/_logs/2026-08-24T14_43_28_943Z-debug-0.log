@@ -1,0 +1,21 @@
+0 verbose cli C:\develop_tools\nodejs\node.exe C:\develop_tools\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.19.0
+2 info using node@v26.7.0
+3 silly config load:file:C:\develop_tools\nodejs\node_modules\npm\npmrc
+4 silly config load:file:C:\work_learn\XinChuang_pc\frontend\.npmrc
+5 silly config load:file:C:\Users\Ayana\.npmrc
+6 silly config load:file:C:\develop_tools\nodejs\node_global\etc\npmrc
+7 verbose title npm ping
+8 verbose argv "--cache" "C:\\work_learn\\XinChuang_pc\\.npm-cache" "ping" "--registry" "https://registry.npmjs.org"
+9 verbose logfile logs-max:10 dir:C:\work_learn\XinChuang_pc\.npm-cache\_logs\2026-08-24T14_43_28_943Z-
+10 verbose logfile C:\work_learn\XinChuang_pc\.npm-cache\_logs\2026-08-24T14_43_28_943Z-debug-0.log
+11 silly logfile done cleaning log files
+12 notice PING https://registry.npmjs.org/
+13 http fetch GET 200 https://registry.npmjs.org/-/ping 935ms
+14 notice PONG 937ms
+15 verbose cwd C:\work_learn\XinChuang_pc\frontend
+16 verbose os Windows_NT 10.0.26200
+17 verbose node v26.7.0
+18 verbose npm  v11.19.0
+19 verbose exit 0
+20 info ok

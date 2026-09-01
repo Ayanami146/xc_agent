@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.MessageCitationMapper">
+    <insert id="insertBatch">
+        INSERT INTO message_citation(
+            message_id, ordinal_no, source_id, title, snippet, source_locator, page_no, score
+        )
+        VALUES
+        <foreach collection="citations" item="citation" separator=",">
+            (#{citation.messageId}, #{citation.ordinalNo}, #{citation.sourceId},
+             #{citation.title}, #{citation.snippet}, #{citation.sourceLocator},
+             #{citation.pageNo}, #{citation.score})
+        </foreach>
+    </insert>
+
+    <select id="selectByMessageIds" resultType="com.xc.agent.model.po.MessageCitationPO">
+        SELECT id,
+        message_id     AS messageId,
+        ordinal_no     AS ordinalNo,
+        source_id      AS sourceId,
+        title,
+        snippet,
+        source_locator AS sourceLocator,
+        page_no        AS pageNo,
+        score,
+        created_at     AS createdAt
+        FROM message_citation
+        WHERE message_id IN
+        <foreach collection="messageIds"
+                 item="messageId"
+                 open="("
+                 separator=","
+                 close=")">
+            #{messageId}
+        </foreach>
+        ORDER BY message_id ASC, ordinal_no ASC
+    </select>
+</mapper>

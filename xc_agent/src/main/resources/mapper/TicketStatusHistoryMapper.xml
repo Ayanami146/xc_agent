@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.TicketStatusHistoryMapper">
+    <resultMap id="HistoryMap" type="com.xc.agent.model.po.TicketStatusHistoryPO">
+        <id property="id" column="id"/><result property="publicId" column="public_id"/>
+        <result property="ticketId" column="ticket_id"/><result property="fromStatus" column="from_status"/>
+        <result property="toStatus" column="to_status"/><result property="operatorType" column="operator_type"/>
+        <result property="operatorId" column="operator_id"/><result property="title" column="title"/>
+        <result property="reason" column="reason"/><result property="requestId" column="request_id"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+    <select id="selectByTicketId" resultMap="HistoryMap">
+        SELECT id,public_id,ticket_id,from_status,to_status,operator_type,operator_id,title,reason,request_id,created_at
+        FROM ticket_status_history WHERE ticket_id=#{ticketId} ORDER BY created_at
+    </select>
+    <insert id="insert" parameterType="com.xc.agent.model.po.TicketStatusHistoryPO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ticket_status_history(public_id,ticket_id,from_status,to_status,operator_type,operator_id,title,reason,request_id,created_at)
+        VALUES(#{publicId},#{ticketId},#{fromStatus},#{toStatus},#{operatorType},#{operatorId},#{title},#{reason},#{requestId},#{createdAt})
+    </insert>
+</mapper>

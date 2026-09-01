@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.ChatRequestMapper">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_request(session_id, user_id, request_hash, status)
+        VALUES (#{sessionId}, #{userId}, #{requestHash}, 'ACCEPTED')
+    </insert>
+
+    <select id="selectByIdAndUserId" resultType="com.xc.agent.model.po.ChatRequestPO">
+        SELECT id,
+               session_id AS sessionId,
+               user_id AS userId,
+               request_hash AS requestHash,
+               status,
+               started_at AS startedAt,
+               finished_at AS finishedAt,
+               error_code AS errorCode,
+               error_message AS errorMessage,
+               model_route AS modelRoute,
+               usage_json AS usageJson,
+               created_at AS createdAt,
+               updated_at AS updatedAt
+        FROM chat_request
+        WHERE id = #{requestId}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <!-- 状态条件是取消与成功并发时的最后一道保护，禁止终态被后到事件覆盖。 -->
+    <update id="markRunning">
+        UPDATE chat_request
+        SET status = 'RUNNING',
+            started_at = UTC_TIMESTAMP(3),
+            updated_at = UTC_TIMESTAMP(3)
+        WHERE id = #{requestId}
+          AND user_id = #{userId}
+          AND status = 'ACCEPTED'
+    </update>
+
+    <update id="markSucceeded">
+        UPDATE chat_request
+        SET status = 'SUCCEEDED',
+            model_route = #{modelRoute},
+            usage_json = #{usageJson},
+            finished_at = UTC_TIMESTAMP(3),
+            error_code = NULL,
+            error_message = NULL,
+            updated_at = UTC_TIMESTAMP(3)
+        WHERE id = #{requestId}
+          AND user_id = #{userId}
+          AND status = 'RUNNING'
+    </update>
+
+    <update id="markFailed">
+        UPDATE chat_request
+        SET status = 'FAILED',
+            error_code = #{errorCode},
+            error_message = #{errorMessage},
+            finished_at = UTC_TIMESTAMP(3),
+            updated_at = UTC_TIMESTAMP(3)
+        WHERE id = #{requestId}
+          AND user_id = #{userId}
+          AND status IN ('ACCEPTED', 'RUNNING')
+    </update>
+
+    <update id="markCancelled">
+        UPDATE chat_request
+        SET status = 'CANCELLED',
+            error_code = 'RUN_CANCELLED',
+            error_message = '本次回答已停止',
+            finished_at = UTC_TIMESTAMP(3),
+            updated_at = UTC_TIMESTAMP(3)
+        WHERE id = #{requestId}
+          AND user_id = #{userId}
+          AND status IN ('ACCEPTED', 'RUNNING')
+    </update>
+</mapper>

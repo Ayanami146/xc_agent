@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.ManualDocMapper">
+    <resultMap id="ManualMap" type="com.xc.agent.model.po.ManualDocPO">
+        <id property="id" column="id"/><result property="publicId" column="public_id"/><result property="categoryId" column="category_id"/>
+        <result property="title" column="title"/><result property="summary" column="summary"/><result property="parsedText" column="parsed_text"/>
+        <result property="objectKey" column="object_key"/><result property="fileName" column="file_name"/><result property="contentType" column="content_type"/>
+        <result property="fileSize" column="file_size"/><result property="sha256" column="sha256"/><result property="scanStatus" column="scan_status"/>
+        <result property="status" column="status"/><result property="versionNo" column="version_no"/><result property="publishedAt" column="published_at"/>
+        <result property="version" column="version"/><result property="createdAt" column="created_at"/><result property="updatedAt" column="updated_at"/><result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+    <sql id="columns">id,public_id,category_id,title,summary,parsed_text,object_key,file_name,content_type,file_size,sha256,scan_status,status,version_no,published_at,version,created_at,updated_at,deleted_at</sql>
+    <sql id="qualifiedColumns">d.id,d.public_id,d.category_id,d.title,d.summary,d.parsed_text,d.object_key,d.file_name,d.content_type,d.file_size,d.sha256,d.scan_status,d.status,d.version_no,d.published_at,d.version,d.created_at,d.updated_at,d.deleted_at</sql>
+    <sql id="where">deleted_at IS NULL
+        <if test="keyword != null and keyword != ''">AND (title LIKE CONCAT('%',#{keyword},'%') OR summary LIKE CONCAT('%',#{keyword},'%') OR file_name LIKE CONCAT('%',#{keyword},'%'))</if>
+        <if test="categoryId != null">AND category_id=#{categoryId}</if><if test="status != null and status != ''">AND status=#{status}</if>
+    </sql>
+    <select id="selectPage" resultMap="ManualMap">SELECT <include refid="columns"/> FROM manual_doc WHERE <include refid="where"/> ORDER BY updated_at DESC LIMIT #{offset},#{pageSize}</select>
+    <select id="countPage" resultType="long">SELECT COUNT(*) FROM manual_doc WHERE <include refid="where"/></select>
+    <!--
+      RAG 清单必须以 MySQL 发布状态为准。格式过滤与上传白名单保持一致，避免 Agent
+      收到自己无法解析的旧版 DOC；分类停用后对应手册也应立即从下一次检索中消失。
+    -->
+    <select id="selectPublishedForRag" resultMap="ManualMap">
+        SELECT <include refid="qualifiedColumns"/>
+        FROM manual_doc d INNER JOIN manual_category c ON c.id=d.category_id
+        WHERE d.deleted_at IS NULL AND d.status='PUBLISHED' AND c.status='ENABLED'
+          AND d.object_key REGEXP '^[a-f0-9]{32}\\.(pdf|docx|txt|md)$'
+          AND d.sha256 REGEXP '^[a-f0-9]{64}$'
+        ORDER BY d.id
+    </select>
+    <select id="selectByPublicId" resultMap="ManualMap">SELECT <include refid="columns"/> FROM manual_doc WHERE public_id=#{publicId} AND deleted_at IS NULL LIMIT 1</select>
+    <insert id="insert" parameterType="com.xc.agent.model.po.ManualDocPO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO manual_doc(public_id,category_id,title,summary,parsed_text,object_key,file_name,content_type,file_size,sha256,scan_status,status,version_no,published_at,version,created_at,updated_at)
+        VALUES(#{publicId},#{categoryId},#{title},#{summary},#{parsedText},#{objectKey},#{fileName},#{contentType},#{fileSize},#{sha256},#{scanStatus},#{status},#{versionNo},#{publishedAt},0,#{createdAt},#{updatedAt})
+    </insert>
+    <update id="updateMetadata">UPDATE manual_doc SET category_id=#{doc.categoryId},title=#{doc.title},summary=#{doc.summary},version=version+1
+        WHERE id=#{doc.id} AND version=#{expectedVersion} AND deleted_at IS NULL</update>
+    <update id="replaceFile">UPDATE manual_doc SET object_key=#{doc.objectKey},file_name=#{doc.fileName},content_type=#{doc.contentType},file_size=#{doc.fileSize},sha256=#{doc.sha256},scan_status=#{doc.scanStatus},version_no=version_no+1,version=version+1
+        WHERE id=#{doc.id} AND version=#{expectedVersion} AND deleted_at IS NULL</update>
+    <update id="updateStatus">UPDATE manual_doc SET status=#{status},published_at=#{publishedAt},version=version+1 WHERE id=#{id} AND version=#{expectedVersion} AND deleted_at IS NULL</update>
+</mapper>

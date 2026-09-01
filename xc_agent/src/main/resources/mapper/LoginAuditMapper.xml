@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.LoginAuditMapper">
+    <insert id="insert" parameterType="com.xc.agent.model.po.LoginAuditPO"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO login_audit
+        (subject_type, subject_ref, login_mode, result, reason_code,
+         ip_address, user_agent, request_id, created_at)
+        VALUES
+        (#{subjectType}, #{subjectRef}, #{loginMode}, #{result}, #{reasonCode},
+         #{ipAddress}, #{userAgent}, #{requestId}, #{createdAt})
+    </insert>
+</mapper>

@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: xc_agent
+  datasource:
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3306/xinchuang_customer_service?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:192.168.100.128}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:123456}
+      database: ${REDIS_DATABASE:3}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:3s}
+      timeout: ${REDIS_TIMEOUT:3s}
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_MULTIPART_MAX_FILE_SIZE:20MB}
+      max-request-size: ${SPRING_MULTIPART_MAX_REQUEST_SIZE:21MB}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+mybatis:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.xc.agent.model.po
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    jdbc-type-for-null: 'NULL'
+
+app:
+  auth:
+    access-token-ttl: ${ACCESS_TOKEN_TTL:2h}
+    refresh-token-ttl: ${REFRESH_TOKEN_TTL:30d}
+    sms-code-ttl: ${SMS_CODE_TTL:5m}
+    jwt-secret: ${JWT_SECRET:xc-agent-local-development-secret-change-before-production-2026}
+    refresh-cookie-name: ${REFRESH_COOKIE_NAME:XC_REFRESH_TOKEN}
+    refresh-cookie-path: ${REFRESH_COOKIE_PATH:/api/v1/auth}
+    cookie-secure: ${AUTH_COOKIE_SECURE:false}
+  admin:
+    refresh-cookie-name: ${ADMIN_REFRESH_COOKIE_NAME:XC_ADMIN_REFRESH_TOKEN}
+    refresh-cookie-path: ${ADMIN_REFRESH_COOKIE_PATH:/api/v1/admin/auth}
+    max-login-attempts: ${ADMIN_MAX_LOGIN_ATTEMPTS:5}
+    login-lock-duration: ${ADMIN_LOGIN_LOCK_DURATION:15m}
+    # 生产环境请使用绝对路径，并确保 Python 的 AGENT_MANUAL_STORAGE_DIRECTORY
+    # 指向同一物理目录或共享卷；内部清单只传 objectKey，不传客户端路径。
+    manual-storage-directory: ${MANUAL_STORAGE_DIRECTORY:./data/manuals}
+    manual-max-file-size: ${MANUAL_MAX_FILE_SIZE:20971520}
+  faq-cache:
+    # FAQ 详情、列表和分类只使用 Java 业务 Redis（spring.data.redis）。
+    # 不得指向 Python 的 AGENT_REDIS_URL，后者仅用于 LangGraph 上下文。
+    ttl: ${FAQ_CACHE_TTL:10m}
+    key-prefix: ${FAQ_CACHE_KEY_PREFIX:xc:faq:v1:}
+  agent:
+    # 浏览器不能直接访问该地址；只有 Java 业务服务调用 Python Agent。
+    base-url: ${AGENT_BASE_URL:http://127.0.0.1:8100/internal/ai/v1}
+    internal-token: ${AGENT_INTERNAL_TOKEN:}
+    connect-timeout: ${AGENT_CONNECT_TIMEOUT:5s}
+    request-timeout: ${AGENT_REQUEST_TIMEOUT:130s}
+    stream-timeout: ${CHAT_STREAM_TIMEOUT:135s}
+    model-route: ${AGENT_MODEL_ROUTE:default}
+    knowledge-base-ids: ${AGENT_KNOWLEDGE_BASE_IDS:default}
+    max-output-tokens: ${AGENT_MAX_OUTPUT_TOKENS:1024}

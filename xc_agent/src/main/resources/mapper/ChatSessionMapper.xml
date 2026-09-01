@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xc.agent.mapper.ChatSessionMapper">
+    <!-- useGeneratedKeys 将 MySQL 自增主键直接回填到 PO，供后续请求和消息外键使用。 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_session(user_id, title, preview, status, last_message_at)
+        VALUES (#{userId}, #{title}, #{preview}, 'ACTIVE', UTC_TIMESTAMP(3))
+    </insert>
+
+    <!-- 接口层直接使用 chat_session.id 自增主键。 -->
+    <sql id="sessionVoColumns">
+        id,
+        title,
+        preview,
+        updated_at AS updatedAt
+    </sql>
+
+    <!-- 所有列表和总数查询共用相同的用户归属、软删除及关键字条件。 -->
+    <sql id="ownedSessionWhere">
+        user_id = #{userId}
+        AND deleted_at IS NULL
+        <if test="keyword != null and keyword != ''">
+            AND (title LIKE CONCAT('%', #{keyword}, '%')
+                 OR preview LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </sql>
+
+    <!-- 当前用户会话分页；id 用于同一时间下的稳定排序。 -->
+    <select id="list" resultType="com.xc.agent.model.vo.chat.ChatVOs$ChatSessionVO">
+        SELECT <include refid="sessionVoColumns"/>
+        FROM chat_session
+        WHERE <include refid="ownedSessionWhere"/>
+        ORDER BY updated_at DESC, id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 分页总数不能使用当前页 items.size()，需要单独执行 COUNT。 -->
+    <select id="count" resultType="long">
+        SELECT COUNT(*)
+        FROM chat_session
+        WHERE <include refid="ownedSessionWhere"/>
+    </select>
+
+    <!-- 按主键查询时仍必须附带 user_id，防止读取其他用户的会话。 -->
+    <select id="selectByIdAndUserId"
+            resultType="com.xc.agent.model.vo.chat.ChatVOs$ChatSessionVO">
+        SELECT <include refid="sessionVoColumns"/>
+        FROM chat_session
+        WHERE id = #{sessionId}
+          AND user_id = #{userId}
+          AND deleted_at IS NULL
+        LIMIT 1
+    </select>
+
+    <!-- 重命名只作用于当前用户尚未删除的会话，并递增乐观锁版本。 -->
+    <update id="rename">
+        UPDATE chat_session
+        SET title = #{title},
+            version = version + 1,
+            updated_at = UTC_TIMESTAMP(3)
+        WHERE id = #{sessionId}
+          AND user_id = #{userId}
+          AND deleted_at IS NULL
+    </update>
+
+    <!-- 软删除：保留原始会话及消息，只为 deleted_at 写入删除时间。 -->
+    <update id="softDelete">
+        UPDATE chat_session
+        SET deleted_at = UTC_TIMESTAMP(3),
+            version = version + 1,
+            updated_at = UTC_TIMESTAMP(3)
+        WHERE id = #{sessionId}
+          AND user_id = #{userId}
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="updatePreview">
+        UPDATE chat_session
+        SET preview = #{preview},
+            last_message_at = UTC_TIMESTAMP(3),
+            version = version + 1,
+            updated_at = UTC_TIMESTAMP(3)
+        WHERE id = #{sessionId}
+          AND user_id = #{userId}
+          AND deleted_at IS NULL
+    </update>
+</mapper>
